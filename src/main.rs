@@ -1,57 +1,36 @@
-use bevy::render::texture::ImageSamplerDescriptor;
 use bevy::{prelude::*, window::WindowResolution};
-// use bevy_ecs_ldtk::prelude::*;
+use bevy_ecs_ldtk::prelude::*;
+
+const WIDTH: f32 = 1200.0;
+const HEIGHT: f32 = 800.0;
 
 fn main() {
-    let mut app = App::new();
-    app.add_plugins(
-        DefaultPlugins
-            .set(ImagePlugin {
-                // 像素画放大后仍保证清晰
-                default_sampler: ImageSamplerDescriptor::nearest(),
-            })
-            .set(WindowPlugin {
-                //设置窗口大小 1100*750
-                primary_window: Some(Window {
-                    #[cfg(target_os = "windows")]
-                    position: WindowPosition::Centered(MonitorSelection::Primary), //窗口居中
-                    resolution: WindowResolution::new(1200.0, 800.0),
-                    ..default()
-                }),
-                ..default()
-            }),
-    )
-    // .add_plugins(LdtkPlugin)
-    ;
-
-    // #[cfg(not(target_arch = "wasm32"))]
-    // {
-    //     app.add_plugins(WeatherPlugin);
-    // }
-
-    app
-    // .add_state::<AppState>()
-    //     .insert_resource(ClearColor(Color::BLACK))
-    //     .insert_resource(LevelSelection::index(0))
-    //     .insert_resource(CameraState::Following)
-    //     .add_event::<CameraShakeEvent>()
-    //     .add_systems(Startup, (setup_camera,))
-    //     // Start Menu
-    //     .add_systems(OnEnter(AppState::StartMenu), (setup_start_menu,))
-    //     .add_systems(
-    //         Update,
-    //         (enter_gaming,).run_if(in_state(AppState::StartMenu)),
-    //     )
-    //     .add_systems(OnExit(AppState::StartMenu), (cleanup_start_menu,))
-    //     // Gaming
-    //     .add_systems(OnEnter(AppState::Gaming), (setup_ldtk_world,))
-    //     .add_systems(
-    //         PreUpdate,
-    //         (spawn_ldtk_entity,).run_if(in_state(AppState::Gaming)),
-    //     )
-    //     .add_systems(
-    //         PostUpdate,
-    //         (player_state_machine,).run_if(in_state(AppState::Gaming)),
-    //     )
+    App::new()
+        .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest())
+                                   .set(WindowPlugin {
+                                    primary_window: Some(Window {
+                                        #[cfg(target_os = "windows")]
+                                        position: WindowPosition::Centered(MonitorSelection::Primary), //窗口居中
+                                        resolution: WindowResolution::new(WIDTH, HEIGHT),
+                                        ..default()
+                                    }),
+                                    ..default()
+                                }))
+        .add_plugins(LdtkPlugin)
+        .add_systems(Startup, setup)
+        .insert_resource(LevelSelection::index(0))  // 初始进入关卡0
         .run();
+}
+
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let mut camera = Camera2dBundle::default();
+    camera.projection.scale = 0.5;  // 缩放投影。随着尺度的增大，物体的表观尺寸减小，反之亦然。
+    camera.transform.translation.x += WIDTH / 5.0; // 相机位置
+    camera.transform.translation.y += HEIGHT / 5.0;
+    commands.spawn(camera); // 生成相机
+
+    commands.spawn(LdtkWorldBundle {        // 导入ldtk
+        ldtk_handle: asset_server.load("pvz1.ldtk.ldtk"),
+        ..Default::default()
+    });
 }
